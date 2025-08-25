@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <h2>Hi {{ username }},</h2>
+    <p>Here are the questions you answered incorrectly in your recent quiz:</p>
+    <table border="1" cellpadding="8" cellspacing="0">
+        <tr>
+            <th>Question</th>
+            <th>Your Answer</th>
+            <th>Correct Answer</th>
+        </tr>
+        {% for item in incorrect_answers %}
+        <tr>
+            <td>{{ item.question }}</td>
+            <td>{{ item.your_answer }}</td>
+            <td>{{ item.correct_answer }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <p>Review these topics and try again to improve your score!</p>
+
+    
+</body>
+</html>

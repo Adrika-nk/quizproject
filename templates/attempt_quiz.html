@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ course.name }} - Quiz</title>
+</head>
+<body>
+    <h2>{{ course.name }} - Quiz</h2>
+    <form method="post">
+        {% csrf_token %}
+
+        <ol>
+            {% for question in questions %}
+                <li>
+                    <p><strong>{{ question.text }}</strong></p>
+
+                    <label>
+                        <input type="radio" name="question_{{ question.id }}" value="a">
+                        {{ question.option_a }}
+                    </label><br>
+
+                    <label>
+                        <input type="radio" name="question_{{ question.id }}" value="b">
+                        {{ question.option_b }}
+                    </label><br>
+
+                    <label>
+                        <input type="radio" name="question_{{ question.id }}" value="c">
+                        {{ question.option_c }}
+                    </label><br>
+
+                    <label>
+                        <input type="radio" name="question_{{ question.id }}" value="d">
+                        {{ question.option_d }}
+                    </label><br><br>
+                </li>
+            {% empty %}
+                <p>No questions available for this course.</p>
+            {% endfor %}
+        </ol>
+
+        <button type="submit">Submit Quiz</button>
+    </form>
+</body>
+</html>

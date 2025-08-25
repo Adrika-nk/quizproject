@@ -1,0 +1,74 @@
+{% load static %}
+<!-- <!DOCTYPE html>
+<html>
+<head>
+    <title>{{ course.name }} - Notes</title>
+</head>
+<body>
+    <h2>{{ course.name }} - Notes</h2>
+
+    <a href="{% url 'quizapp:course_detail' course.id %}">
+        <button>Back to Course</button>
+    </a>
+
+    {% if notes %}
+        <ul>
+            {% for note in notes %}
+                <li>
+                    <h3>{{ note.title }}</h3>
+                    <p>{{ note.content }}</p>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No notes available for this course.</p>
+    {% endif %}
+</body>
+</html> -->
+
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ course.name }} Notes</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            text-align: center;
+        }
+        iframe {
+            width: 100%;
+            height: 90vh;
+            border: none;
+        }
+        .download-btn {
+            display: inline-block;
+            margin: 15px auto;
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        .download-btn:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h2>{{ course.name }} Notes</h2>
+
+    <!-- Embed PDF -->
+    <iframe src="{% static 'notes/' %}{{ course.name|slugify }}.pdf"></iframe>
+
+    <!-- Download Button -->
+    <div>
+        <a href="{% static 'notes/' %}{{ course.name|slugify }}.pdf" download class="download-btn">
+            ⬇ Download PDF
+        </a>
+    </div>
+</body>
+</html>

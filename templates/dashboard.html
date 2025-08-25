@@ -1,0 +1,205 @@
+{% load tz %}
+{% load static %}
+{% load custom_filters %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard | Quiz Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .progress .progress-bar { transition: width 1s ease-in-out; }
+        .percent-label {
+            font-weight: 600;
+            color: #333;
+            min-width: 44px;
+            text-align: right;
+        }
+        .score-text { display: block; margin-top: 4px; color:#555; }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2>Welcome, {{ request.user.username }}</h2>
+            <a href="{% url 'quizapp:logout' %}" class="btn btn-danger">Logout</a>
+        </div>
+        <div class="container mt-4">
+            <h3>🎬 Search YouTube Videos</h3>
+            <form method="get" action="">
+                <div class="input-group mb-3">
+                    <input type="text" name="q" class="form-control" placeholder="Search for videos..." value="{{ query|default:'' }}">
+                    <button class="btn btn-danger" type="submit">Search</button>
+                </div>
+            </form>
+
+            {% if youtube_results %}
+                <div class="row">
+                    {% for video in youtube_results %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card shadow-sm">
+                                <iframe width="100%" height="200"
+                                    src="https://www.youtube.com/embed/{{ video.id.videoId }}"
+                                    frameborder="0" allowfullscreen>
+                                </iframe>
+                                <div class="card-body">
+                                    <h6>{{ video.snippet.title }}</h6>
+                                    <p class="text-muted">{{ video.snippet.channelTitle }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% elif query %}
+                <p>No YouTube videos found for "{{ query }}"</p>
+            {% endif %}
+        </div>
+        <hr>
+
+
+        <hr><br><br><br>
+
+        <h3>Available Courses</h3>
+        <div class="row">
+            {% for course in courses %}
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 shadow-sm">
+                        {% if course.image %}
+                            <img src="{{ course.image.url }}" class="card-img-top" alt="{{ course.name }}">
+                        {% else %}
+                            <img src="{% static 'images/default_course.jpg' %}" class="card-img-top" alt="Default">
+                        {% endif %}
+                        <div class="card-body">
+                            <h5 class="card-title">{{ course.title }}</h5>
+                            <p class="card-text">{{ course.description|truncatewords:100 }}</p>
+                            <a href="{% url 'quizapp:course_detail' course.id %}" class="btn btn-primary">View Course</a>
+
+                            {% if course.video_url %}
+                                <a href="{% url 'quizapp:view_notes' course.id %}">
+                                    <button>View Notes</button>
+                                </a>
+
+                                <!-- ✅ Today’s Tasks for this course -->
+                                <div class="mt-3">
+                                    <h6>Today's Tasks ({{ course.todays_tasks|length }})</h6>
+                                    {% if course.todays_tasks %}
+                                        {% for task in course.todays_tasks %}
+                                            <div class="card p-3 my-2">
+                                                <p class="mb-2"><strong>Task {{ forloop.counter }}:</strong> {{ task.question }}</p>
+
+                                                {% if task.user_submission %}
+                                                    <div class="mb-2">
+                                                        <div><strong>Your Answer:</strong></div>
+                                                        <div class="border rounded p-2">{{ task.user_submission.answer }}</div>
+                                                    </div>
+                                                    <span class="badge 
+                                                        {% if task.user_submission.status == 'PENDING' %} bg-secondary
+                                                        {% elif task.user_submission.status == 'UNDER_REVIEW' %} bg-warning text-dark
+                                                        {% elif task.user_submission.status == 'REVIEWED' %} bg-success
+                                                        {% else %} bg-light text-dark {% endif %}">
+                                                        {{ task.user_submission.get_status_display }}
+                                                    </span>
+                                                {% else %}
+                                                    <form method="post" action="{% url 'quizapp:submit_task' task.id %}">
+                                                        {% csrf_token %}
+                                                        <textarea name="answer" rows="3" class="form-control" placeholder="Write your answer..." required></textarea>
+                                                        <button type="submit" class="btn btn-primary btn-sm mt-2">Submit Task</button>
+                                                    </form>
+                                                {% endif %}
+                                            </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <p class="text-muted">No tasks for today 🎉</p>
+                                    {% endif %}
+                                </div>
+                                <!-- ✅ End Today’s Tasks -->
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <p>No courses available.</p>
+            {% endfor %}
+        </div>
+
+        <hr>
+
+        <h3>Your Quiz Scores</h3>
+
+        {% if attempts %}
+            <table class="table table-bordered mt-3">
+                <thead>
+                    <tr>
+                        <th>Quiz</th>
+                        <th style="width: 60%;">Score</th>
+                        <th>Taken On</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in attempts %}
+                        <tr>
+                            <td>{{ a.result.quiz.title }}</td>
+                            <td>
+                                <!-- Progress bar -->
+                                <div class="progress" style="height: 22px;">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated {{ a.css }}"
+                                        role="progressbar"
+                                        data-percent="{{ a.percent_num }}"
+                                        aria-valuemin="0" aria-valuemax="100"
+                                        style="width: 0%;">
+                                    </div>
+                                </div>
+                                <small class="score-text">{{ a.result.score }}/{{ a.result.quiz.total_marks }}</small>
+                                <div class="float-end percent-label" aria-hidden="true" data-target="{{ a.percent_num }}"></div>
+                            </td>
+                            <td>{{ a.created_at }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="text-muted">No quizzes taken yet.</p>
+        {% endif %}
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const bars = Array.from(document.querySelectorAll('.progress-bar[data-percent]'));
+        if (!bars.length) return;
+
+        function animateBar(bar) {
+            const target = Number(bar.dataset.percent) || 0;
+            requestAnimationFrame(() => { bar.style.width = target + '%'; });
+
+            const label = bar.closest('td')?.querySelector('.percent-label');
+            if (!label) return;
+
+            const duration = 900;
+            const start = performance.now();
+            const startVal = 0;
+            const endVal = target;
+
+            function step(ts) {
+                const elapsed = ts - start;
+                const progress = Math.min(elapsed / duration, 1);
+                const current = Math.round(startVal + (endVal - startVal) * progress);
+                label.textContent = current + '%';
+                if (progress < 1) requestAnimationFrame(step);
+            }
+            requestAnimationFrame(step);
+        }
+
+        const io = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    animateBar(entry.target);
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.25 });
+
+        bars.forEach(bar => io.observe(bar));
+    });
+    </script>
+</body>
+</html>

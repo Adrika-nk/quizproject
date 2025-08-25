@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ course.name }}</title>
+</head>
+<body>
+    <h2>{{ course.name }}</h2>
+
+    <a href="{% url 'quizapp:dashboard' %}">
+        <button>Back to Dashboard</button>
+    </a>
+
+    <a href="{% url 'quizapp:attempt_quiz' course.id %}">
+        <button>Attempt Quiz</button>
+    </a>
+    
+
+    <hr>
+
+    <h3>Quiz Questions:</h3>
+    
+    <ol>
+        {% for question in questions %}
+            <li>
+                <strong>{{ question.text }}</strong><br>
+                
+                a) {{ question.option_a }}<br>
+                b) {{ question.option_b }}<br>
+                c) {{ question.option_c }}<br>
+                d) {{ question.option_d }}<br><br>
+            </li>
+        {% empty %}
+    
+            <p>No questions available in this course yet.</p>
+        {% endfor %}
+    </ol>
+    
+</body>
+</html>
+

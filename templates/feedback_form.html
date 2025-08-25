@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Feedback - {{ quiz.title }}</title>
+</head>
+<body>
+    <h2>Feedback for {{ quiz.title }}</h2>
+
+    <form method="post">
+        {% csrf_token %}
+        <label>Difficulty:</label>
+        {{ form.difficulty }}<br><br>
+
+        <label>Clarity Rating (1-5 stars):</label>
+        {{ form.clarity_rating }}<br><br>
+
+        <label>Additional Comments:</label><br>
+        {{ form.comments }}<br><br>
+
+        <button type="submit">Submit Feedback</button>
+    </form>
+</body>
+</html>

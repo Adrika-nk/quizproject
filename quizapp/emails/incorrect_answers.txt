@@ -1,0 +1,12 @@
+Hi {{ username }},
+
+Here are the questions you answered incorrectly:
+
+{% for item in incorrect_answers %}
+Question: {{ item.question }}
+Your Answer: {{ item.your_answer }}
+Correct Answer: {{ item.correct_answer }}
+
+{% endfor %}
+
+Review these topics and try again!

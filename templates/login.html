@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            background: linear-gradient(270deg, #91c6e4, #1a1a1a);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 350px;
+            padding: 20px;
+            border-radius: 20px;
+            position: relative;
+            background-color: #1a1a1a;
+            color: #fff;
+            border: 1px solid #333;
+        }
+
+        .title {
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: -1px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            padding-left: 30px;
+            color: #00bfff;
+        }
+
+        .title::before,
+        .title::after {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            left: 0px;
+            background-color: #00bfff;
+        }
+
+        .title::before {
+            width: 18px;
+            height: 18px;
+        }
+
+        .title::after {
+            width: 18px;
+            height: 18px;
+            animation: pulse 1s linear infinite;
+        }
+
+        .signin {
+            font-size: 14.5px;
+            color: rgba(255, 255, 255, 0.7);
+            text-align: center;
+        }
+
+        .signin a {
+            color: #00bfff;
+        }
+
+        .signin a:hover {
+            text-decoration: underline royalblue;
+        }
+
+        .form label {
+            position: relative;
+        }
+
+        .form label .input {
+            background-color: #333;
+            color: #fff;
+            width: 92%;
+            padding: 20px 5px 5px 10px;
+            outline: 0;
+            border: 1px solid rgba(105, 105, 105, 0.397);
+            border-radius: 10px;
+        }
+
+        .form label .input + span {
+            color: rgba(255, 255, 255, 0.5);
+            position: absolute;
+            left: 10px;
+            top: 0px;
+            font-size: 0.9em;
+            cursor: text;
+            transition: 0.3s ease;
+        }
+
+        .form label .input:placeholder-shown + span {
+            top: 12.5px;
+            font-size: 0.9em;
+        }
+
+        .form label .input:focus + span,
+        .form label .input:valid + span {
+            color: #00bfff;
+            top: 0px;
+            font-size: 0.7em;
+            font-weight: 600;
+        }
+
+        .input {
+            font-size: medium;
+        }
+        .input-role{
+            background-color: #333;
+            color: #fff;
+            width: 100%;
+            padding: 20px 5px 5px 10px;
+            outline: 0;
+            border: 1px solid rgba(105, 105, 105, 0.397);
+            border-radius: 10px;
+            font-size: medium;
+
+        }
+        .submit {
+            border: none;
+            outline: none;
+            padding: 10px;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 16px;
+            transform: .3s ease;
+            background-color: #00bfff;
+            cursor: pointer;
+        }
+
+        .submit:hover {
+            background-color: #00bfff96;
+        }
+
+        @keyframes pulse {
+            from {
+                transform: scale(0.9);
+                opacity: 1;
+            }
+            to {
+                transform: scale(1.8);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <form class="form" method="post" autocomplete="off" action="{% url 'quizapp:login' %}">
+        {% csrf_token %}
+        <p class="title">Login</p>
+        <label>
+            <select name="role" class="input-role" required>
+                <option value="" disabled selected>Select Role</option>
+                <option value="student">Student</option>
+                <option value="trainer">Trainer</option>
+            </select>
+        </label>
+
+        <label>
+            <input class="input" type="text" name="username" placeholder=" " autocomplete="username" value="">
+            <span>Username</span>
+        </label>
+
+        <label>
+            <input class="input" type="password" name="password" placeholder=" " autocomplete="new-password" value="">
+            <span>Password</span>
+        </label>
+
+        <button class="submit" type="submit">Login</button>
+        
+
+        <p class="signin">Don't have an account? 
+            <a href="{% url 'quizapp:register' %}">Register</a>
+        </p>
+    </form>
+</body>
+</html>
