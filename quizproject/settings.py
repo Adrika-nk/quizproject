@@ -103,7 +103,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
+LOGIN_URL = 'trainer/login/'   # 👈 or '/student/login/' if you prefer
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
@@ -142,3 +142,6 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 YOUTUBE_API_KEY = "AIzaSyBA8Oylp1lqUr2bTUBRrRUHPPoQAzkK1aA"
 
+# LOGIN_URL = '/trainer/login/'   # or '/trainer/login/' depending on context
+# LOGIN_REDIRECT_URL = 'quizapp:dashboard'  # after login where to go
+# LOGOUT_REDIRECT_URL = 'quizapp:home'

@@ -8,7 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 import requests
 
-from .forms import  FeedbackForm, RegisterForm, QuizAnswerForm
+from .forms import  FeedbackForm, RegisterForm, QuizAnswerForm, TaskForm, TaskSubmissionForm
 from .models import Course, Note,  Quiz, Question, QuizAttempt, Student, Trainer, UpdateUser
 from quizapp.models import QuizResult
 from django.contrib import messages
@@ -25,9 +25,9 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth.models import User
-from .models import DailyTask, TaskSubmission
+from .models import DailyTasks, TaskSubmissions
 from googleapiclient.discovery import build
-
+from django.views.decorators.cache import never_cache
 
 
 YOUTUBE_API_KEY = "AIzaSyBA8Oylp1lqUr2bTUBRrRUHPPoQAzkK1aA"
@@ -57,43 +57,78 @@ def student_register_view(request):
             user.save()
             Student.objects.create(user=user)  # create student profile
             login(request, user)
-            return redirect('quizapp:student_dashboard')
+            return redirect('quizapp:student_dashboards')
     else:
         form = RegisterForm()
     return render(request, 'student_register.html', {'form': form})
-
+@never_cache
 def student_login_view(request):
     if request.method == "POST":
         username = request.POST.get("username")
         password = request.POST.get("password")
-
+        request.session.flush()
         user = authenticate(request, username=username, password=password)
 
-        if user is not None:
-            if user.user:   # ✅ check student flag
-                login(request, user)
-                return redirect("quizapp:student_dashboard")
+        if user is not None and user.is_student:
+            if user.is_student:   # ✅ check student flag
+                # logout(request)  # clear old session (e.g., admin session)
+                # login(request, user)
+
+                # return redirect("quizapp:student_dashboards")
+                send_login_confirmation_email(request, user)
+                messages.info(request, "A confirmation email has been sent to your email address.")
+                return redirect("quizapp:student_login") 
             else:
                 messages.error(request, "This account is not a student account.")
         else:
             messages.error(request, "Invalid username or password.")
     return render(request, "student_login.html")
 
-@login_required
-def student_dashboard(request):
-    return render(request, "student_dashboard.html")
+def send_login_confirmation_email(request, user):
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    token = default_token_generator.make_token(user)
+
+    confirm_url = request.build_absolute_uri(
+        reverse("quizapp:confirm_login", kwargs={"uidb64": uid, "token": token})
+    )
+
+    subject = "Confirm Your Login"
+    message = f"""
+    Hello {user.username},
+
+    We received a login attempt to your account.
+    Please confirm your login by clicking the link below:
+
+    {confirm_url}
+
+    If you did not attempt to log in, please ignore this email.
+    """
+
+    send_mail(
+        subject,
+        message,
+        settings.DEFAULT_FROM_EMAIL,
+        [user.email],
+        fail_silently=False,
+    )
+# def student_dashboard(request):
+#     return render(request, "student_dashboard.html")
 
 
 def trainer_register_view(request):
     if request.method == 'POST':
         form = RegisterForm(request.POST)
+        expertise = request.POST['expertise']
         if form.is_valid():
             user = form.save(commit=False)
             user.is_trainer = True
-            user.is_active = False  # Trainer needs approval
+            user.approved = False  
+            
             user.save()
-            Trainer.objects.create(user=user)  # create trainer profile
-            return redirect('quizapp:pending_approval')
+            Trainer.objects.create(user=user,expertise = expertise)  # create trainer profile
+            login(request, user)
+
+            return redirect('quizapp:pending_approvals')
     else:
         form = RegisterForm()
     return render(request, 'trainer_register.html', {'form': form})
@@ -103,15 +138,20 @@ def trainer_login_view(request):
     if request.method == "POST":
         username = request.POST.get("username")
         password = request.POST.get("password")
-
-        user = authenticate(request, username=username, password=password)
+        user = authenticate(request, username=username, password=password  )
         print(user,"saheer")
         if user is not None:
-            if user.is_tr:   # ✅ check trainer flag
+            if user.is_trainer:   # ✅ check trainer flag
+                print('hellooooooo')
+
                 # if you also track approval in a Trainer model:
-                if hasattr(user, "trainer_profile") and not user:
-                    messages.warning(request, "Your account is awaiting admin approval.")
-                    return redirect("quizapp:pending_approval")
+                if hasattr(user, "trainer_profile")  :
+                    if not user.trainer_profile.approved:
+                        messages.warning(request, "Your account is awaiting admin approval.")
+                        print('colieeeeeeeeee')
+                        return redirect("quizapp:pending_approval")
+                    
+
                 login(request, user)
                 return redirect("quizapp:trainer_dashboard")
             else:
@@ -121,11 +161,76 @@ def trainer_login_view(request):
     return render(request, "trainer_login.html")
 
 
+# def trainer_dashboard(request):
+#     trainer = request.user.trainer_profile
+#     if not trainer.approved:
+#         return redirect("quizapp:pending_approval")
+#     courses = Course.objects.filter(name=trainer.expertise)
+
+#     # Get student quiz results for these courses
+#     quiz_results = QuizResult.objects.filter(quiz__course__in=courses)
+
+#     # Get task submissions for these courses
+#     task_submissions = TaskSubmission.objects.filter(task__course__in=courses)
+#     expertiseuser=Trainer.objects.get(user=request.user)
+#     expertise=expertiseuser.expertise
+#     context = {
+#         "expertise" : expertise,
+#         "courses": courses,
+#         "quiz_results": quiz_results,
+#         "task_submissions": task_submissions,
+#     }
+#     return render(request, "trainer_dashboard.html", context)
+
+
+# @login_required
+# def trainer_dashboard(request):
+#     if request.method == 'POST':
+#         form = TaskForm(request.POST, trainer=request.user)
+#         if form.is_valid():
+#             task = form.save(commit=False)
+#             task.trainer = request.user
+#             task.save()
+#             return redirect('trainer_dashboard')
+#     else:
+#         form = TaskForm(trainer=request.user)
+
+#     tasks = Task.objects.filter(trainer=request.user)
+#     submissions = TaskSubmission.objects.filter(task__trainer=request.user)
+
+#     return render(request, 'quizapp/trainer_dashboard.html', {
+#         'form': form,
+#         'tasks': tasks,
+#         'submissions': submissions,
+#     })
+
+
+@login_required
 def trainer_dashboard(request):
-    trainer = request.user.trainer
-    if not trainer.is_approved:
-        return redirect("quizapp:pending_approval")
-    return render(request, "trainer_dashboard.html")
+    trainer = request.user
+
+    if request.method == 'POST':
+        form = TaskForm(request.POST, trainer=trainer)
+        if form.is_valid():
+            task = form.save(commit=False)
+            task.trainer = trainer
+            task.save()
+            messages.success(request, "Task assigned successfully ✅")
+            return redirect("quizapp:trainer_dashboard")
+    else:
+        form = TaskForm(trainer=trainer)
+    courses = Course.objects.filter(name=trainer.trainer_profile.expertise)
+    quiz_results = QuizResult.objects.filter(quiz__course__in=courses)
+
+    submissions = TaskSubmissions.objects.filter(task__trainer=trainer)
+    # print(submissions,"aaaadrikkaaaa")
+    return render(request, "trainer_dashboard.html", {
+        "form": form,
+        "quiz_results":quiz_results,
+        "submissions": submissions,
+        "expertise": trainer.trainer_profile.expertise if hasattr(trainer, "trainer_profile") else ""
+    })
+
 
 @login_required
 def pending_approval(request):
@@ -149,27 +254,27 @@ def home(request):
 
 
 
-def login_view(request):
-    if request.method == 'POST':
-        username = request.POST['username']
-        password = request.POST['password']
-        user = authenticate(username=username, password=password)
+# def login_view(request):
+#     if request.method == 'POST':
+#         username = request.POST['username']
+#         password = request.POST['password']
+#         user = authenticate(username=username, password=password)
 
-        if user:
-            if user.is_trainer and not user.trainer_profile.approved:
-                messages.error(request, "Your trainer account is pending approval.")
-                return redirect('quizapp:login')
+#         if user:
+#             if user.is_trainer and not user.trainer_profile.approved:
+#                 messages.error(request, "Your trainer account is pending approval.")
+#                 return redirect('quizapp:login')
 
-            login(request, user)
-            if user.is_student:
-                return redirect('quizapp:student_dashboard')
-            elif user.is_trainer:
-                return redirect('quizapp:trainer_dashboard')
-            else:
-                return redirect('quizapp:dashboard')
-        else:
-            messages.error(request, "Invalid credentials")
-    return render(request, 'login.html')
+#             login(request, user)
+#             if user.is_student:
+#                 return redirect('quizapp:student_dashboard')
+#             elif user.is_trainer:
+#                 return redirect('quizapp:trainer_dashboard')
+#             else:
+#                 return redirect('quizapp:dashboard')
+#         else:
+#             messages.error(request, "Invalid credentials")
+#     return render(request, 'login.html')
 
 
 # Register
@@ -181,10 +286,12 @@ def logout_view(request):
 
 # Dashboard
 @login_required
-def dashboard(request):
+def student_dashboard(request):
     print("hai")
     courses = Course.objects.all()
+    print('heloooooooooooo')
     results = QuizResult.objects.filter(user=request.user)
+    print('helooooooooooooooooooooooooooooooooooooooooooooooooooo')
     attempts = []
     for r in results:
         total_marks = getattr(r.quiz, 'total_marks', 100)  # default to 100 if missing
@@ -207,14 +314,14 @@ def dashboard(request):
 
     # --- Daily Task Logic ---
     today = timezone.localdate()
-    todays_tasks = DailyTask.objects.filter(date=today, course__in=courses).select_related('course')
+    todays_tasks = DailyTasks.objects.filter(date=today, course__in=courses).select_related('course')
 
     # attach the current user's submission to each task
     user = request.user if request.user.is_authenticated else None
     for t in todays_tasks:
         t.user_submission = None
         if user and user.is_authenticated:
-            t.user_submission = TaskSubmission.objects.filter(task=t, student=user).first()
+            t.user_submission = TaskSubmissions.objects.filter(task=t, student=user).first()
 
     # group tasks by course and attach to each course obj
     tasks_map = defaultdict(list)
@@ -241,7 +348,7 @@ def dashboard(request):
             data = response.json()
             youtube_results = data.get("items", [])
 
-    return render(request, "dashboard.html", {
+    return render(request, "student_dashboard.html", {
         "courses": courses,
         "attempts": attempts,
         "youtube_results": youtube_results,
@@ -263,12 +370,12 @@ def course_detail(request, course_id):
     # --- Daily Task Logic ---
     today = timezone.now().date()
     # Get today's tasks for this course
-    tasks = DailyTask.objects.filter(course=course, date=today)
+    tasks = DailyTasks.objects.filter(course=course, date=today)
 
     # Check if user has already submitted today's task
     user_submission = None
     if request.user.is_authenticated:
-        user_submission = TaskSubmission.objects.filter(
+        user_submission = TaskSubmissions.objects.filter(
             student=request.user, task__in=tasks
         ).first()
 
@@ -497,7 +604,7 @@ def submit_feedback(request, quiz_id):
             feedback.quiz = quiz
             feedback.user = request.user
             feedback.save()
-            return redirect('quizapp:dashboard')  # Redirect after submission
+            return redirect('quizapp:student_dashboards')  # Redirect after submission
     else:
         form = FeedbackForm()
 
@@ -538,11 +645,11 @@ def login_request(request):
             )
 
             messages.success(request, "A confirmation email has been sent to your registered email. Please confirm to log in.")
-            return redirect("quizapp:login")  # redirect back to login page
+            return redirect("quizapp:student_login")  # redirect back to login page
         else:
             messages.error(request, "Invalid username or password.")
     
-    return render(request, "login.html")
+    return render(request, "student_login.html")
     
 
 def confirm_login(request, uidb64, token):
@@ -555,10 +662,10 @@ def confirm_login(request, uidb64, token):
     if user is not None and default_token_generator.check_token(user, token):
         login(request, user)
         messages.success(request, "You have successfully logged in.")
-        return redirect("quizapp:dashboard")
+        return redirect("quizapp:student_dashboards")
     else:
         messages.error(request, "Login confirmation link is invalid or expired.")
-        return redirect("quizapp:login")
+        return redirect("quizapp:student_login")
     
 
 
@@ -569,20 +676,83 @@ def view_videos(request, course_id):
 
 
 
+@login_required
 def submit_task(request, task_id):
-    task = get_object_or_404(DailyTask, pk=task_id)
+    task = get_object_or_404(DailyTasks, id=task_id)
+    
     if request.method == "POST":
-        answer = (request.POST.get("answer") or "").strip()
-        if answer:
-            # create or update user's submission for this task
-            TaskSubmission.objects.update_or_create(
-                task=task,
-                student=request.user,
-                defaults={'answer': answer, 'status': 'PENDING'}
-            )
-    return redirect('quizapp:dashboard')
+        form = TaskSubmissionForm(request.POST, request.FILES)
+        if form.is_valid():
+            submission = form.save(commit=False)
+            submission.task = task
+            submission.student = request.user
+            submission.save()
+            messages.success(request, "Task submitted successfully!")
+            return redirect("quizapp:view_tasks", course_id=task.course.id)
+    else:
+        form = TaskSubmissionForm()
+
+    return render(request, "submit_task.html", {"form": form, "task": task})
 
 
 
+def update_task_status(request, submission_id):
+    if request.method == "POST" and request.user.is_trainer:
+        submission = get_object_or_404(TaskSubmissions, id=submission_id)
+
+        new_status = request.POST.get("status")
+        if new_status in ["PENDING", "UNDER_REVIEW", "REVIEWED"]:
+            submission.status = new_status
+            submission.save()
+            messages.success(request, f"Task status updated to {submission.get_status_display()}.")
+        else:
+            messages.error(request, "Invalid status selected.")
+
+    return redirect("quizapp:trainer_dashboard")
 
 
+@login_required
+def view_tasks(request, course_id):
+    course = get_object_or_404(Course, id=course_id)
+    tasks = DailyTasks.objects.filter(course=course)
+
+    # Check existing submissions by this student
+    submissions = TaskSubmissions.objects.filter(student=request.user, task__in=tasks)
+    submission_map = {sub.task.id: sub for sub in submissions}
+
+    return render(request, "quizapp/view_tasks.html", {
+        "course": course,
+        "tasks": tasks,
+        "submission_map": submission_map,
+    })
+
+
+@login_required
+def assign_task(request, course_id):
+    course = get_object_or_404(Course, id=course_id, trainer=request.user)
+    
+    if request.method == "POST":
+        form = TaskForm(request.POST)
+        if form.is_valid():
+            task = form.save(commit=False)
+            task.course = course
+            task.trainer = request.user
+            task.save()
+            messages.success(request, "Task assigned successfully!")
+            return redirect("quizapp:trainer_dashboard")
+    else:
+        form = TaskForm()
+
+    return render(request, "assign_task.html", {"form": form, "course": course})
+
+
+
+@login_required
+def review_submissions(request, task_id):
+    task = get_object_or_404(DailyTasks, id=task_id, trainer=request.user)
+    submissions = TaskSubmissions.objects.filter(task=task)
+
+    return render(request, "quizapp/review_submissions.html", {
+        "task": task,
+        "submissions": submissions,
+    })

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ course.name }} - Tasks</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+</head>
+<body style="background-color:#f3f4f6; font-family: 'Segoe UI', sans-serif;">
+
+<div class="container mt-5">
+    <!-- Page Header -->
+    <div class="text-center mb-4">
+        <h2 class="fw-bold" style="color:#3b82f6;">{{ course.name }} - Today's Tasks</h2>
+        <p class="text-muted">Complete your tasks and track progress easily</p>
+    </div>
+
+    {% if tasks %}
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <ul class="list-group border-0">
+                    {% for task in tasks %}
+                        <li class="list-group-item p-4 mb-4 rounded-4 shadow-sm border-0" 
+                            style="background-color:#ffffff;">
+                            
+                            <!-- Task Title -->
+                            <h5 class="fw-semibold mb-3" style="color:#2563eb;">
+                                <i class="bi bi-check-circle-fill me-2" style="color:#10b981;"></i>
+                                Task {{ forloop.counter }}: 
+                                <span style="color:#1e40af;">{{ task.question }}</span>
+                            </h5>
+
+                            {% if task.user_submission %}
+                                <!-- Answer Card -->
+                                <div class="p-3 rounded-3 shadow-sm" style="background-color:#f9fafb;">
+                                    <strong class="text-secondary">Your Answer:</strong>
+                                    <div class="mt-2">
+                                        <a href="{{ task.user_submission.answer.url }}" target="_blank" 
+                                           class="btn btn-outline-primary btn-sm rounded-pill">
+                                            <i class="bi bi-file-earmark-text"></i>
+                                            {{ task.user_submission.answer.name }}
+                                        </a>
+                                    </div>
+
+                                    <!-- Status Badge -->
+                                    <div class="mt-3">
+                                        <span class="badge px-3 py-2 fs-6 rounded-pill
+                                            {% if task.user_submission.status == 'PENDING' %} bg-secondary
+                                            {% elif task.user_submission.status == 'UNDER_REVIEW' %} bg-warning text-dark
+                                            {% elif task.user_submission.status == 'REVIEWED' %} bg-success
+                                            {% else %} bg-light text-dark {% endif %}">
+                                            {{ task.user_submission.get_status_display }}
+                                        </span>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <!-- Upload Form -->
+                                <form method="post" action="{% url 'quizapp:submit_task' task.id %}" 
+                                      enctype="multipart/form-data" class="mt-3">
+                                    {% csrf_token %}
+                                    <div class="input-group rounded-pill overflow-hidden shadow-sm">
+                                        <input type="file" name="answer_file" 
+                                               class="form-control border-0" 
+                                               accept=".pdf,.doc,.docx,.txt" required>
+                                        <button type="submit" class="btn btn-success px-4">
+                                            <i class="bi bi-upload"></i> Upload
+                                        </button>
+                                    </div>
+                                </form>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    {% else %}
+        <!-- No Tasks -->
+        <div class="text-center mt-5">
+            <p class="fs-5 fw-semibold" style="color:#6b7280;">No tasks for today 🎉</p>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Bootstrap JS (for interactivity, optional) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>

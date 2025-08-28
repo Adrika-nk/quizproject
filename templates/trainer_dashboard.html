@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Trainer Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .dashboard-header {
+            background-color: #2c4f6f;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            position: relative;
+        }
+        .logout-btn {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+        }
+        .section-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 25px;
+            box-shadow: 0 2px 8px rgba(241, 105, 105, 0.685);
+        }
+        h3 {
+            display: flex;
+            align-items: center;
+            font-weight: bold;
+        }
+        h3 i {
+            margin-right: 10px;
+        }
+        .score-text {
+            font-weight: bold;
+            color: #0d6efd; /* Blue instead of green */
+        }
+        table thead {
+            background-color: #212529;
+            color: white;
+        }
+    </style>
+</head>
+<body class="container my-4">
+
+    <!-- Header -->
+    <div class="dashboard-header">
+        <h1>Trainer Dashboard</h1>
+        <p class="mb-0">Welcome, <b>{{ request.user.username }}</b> (Expertise: {{ expertise }})</p>
+        <a href="{% url 'quizapp:logout' %}" class="btn btn-danger logout-btn">Logout</a>
+    </div>
+
+    <!-- Student Quiz Results -->
+    <div class="section-card">
+        <h3>📊 Student Quiz Results</h3>
+        {% if quiz_results %}
+            <table class="table table-bordered mt-3">
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Score</th>
+                        <th>Submitted At</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for result in quiz_results %}
+                        <tr>
+                            <td>{{ result.user.username }}</td>
+                            <td class="score-text">{{ result.score }}</td>
+                            <td>{{ result.created_at }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="text-muted">No quiz results yet.</p>
+        {% endif %}
+    </div>
+
+    <!-- Student Task Submissions -->
+    <div class="section-card">
+        <h3>📝 Student Task Submissions</h3>
+        {% if submissions %}
+            <table class="table table-striped mt-3">
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Task</th>
+                        <th>File</th>
+                        <th>Status</th>
+                        <th>Submitted At</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for submission in submissions %}
+                        <tr>
+                            <td>{{ submission.student.username }}</td>
+                            <td>{{ submission.task.question|truncatechars:50 }}</td>
+                            <td><a href="{{ submission.answer.url }}" target="_blank" class="btn btn-sm btn-outline-primary">View</a></td>
+                            <td>
+                                <form method="post" action="{% url 'quizapp:update_task_status' submission.id %}">
+                                    {% csrf_token %}
+                                    <select name="status" class="form-select form-select-sm">
+                                        <option value="PENDING" {% if submission.status == "PENDING" %}selected{% endif %}>Pending</option>
+                                        <option value="UNDER_REVIEW" {% if submission.status == "UNDER_REVIEW" %}selected{% endif %}>Under Review</option>
+                                        <option value="REVIEWED" {% if submission.status == "REVIEWED" %}selected{% endif %}>Reviewed</option>
+                                    </select>
+                                    <button type="submit" class="btn btn-sm btn-primary mt-1">Update</button>
+                                </form>
+                            </td>                            
+                            <td>{{ submission.submitted_at }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="text-muted">No task submissions yet.</p>
+        {% endif %}
+    </div>
+
+    <div class="section-card">
+        <h3>➕ Assign Task</h3>
+        <form method="post" action="{% url 'quizapp:assign_task' %}">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="question" class="form-label">Task Question</label>
+                <textarea name="question" id="question" class="form-control" rows="3" required></textarea>
+            </div>
+            <button type="submit" class="btn btn-success">Assign Task</button>
+        </form>
+    </div>
+
+
+</body>
+</html>

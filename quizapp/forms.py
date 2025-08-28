@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from .models import Course, Feedback,  Quiz, Question, UpdateUser
+from .models import Course, DailyTasks, Feedback,  Quiz, Question, TaskSubmissions, UpdateUser
 from django import forms
 
 
@@ -19,9 +19,9 @@ class RegisterForm(UserCreationForm):
         
 
 class QuizAnswerForm(forms.Form):
-    def __init__(self, *args, **kwargs):
+    def _init_(self, *args, **kwargs):
         questions = kwargs.pop('questions')
-        super(QuizAnswerForm, self).__init__(*args, **kwargs)
+        super(QuizAnswerForm, self)._init_(*args, **kwargs)
         for question in questions:
             self.fields[str(question.id)] = forms.ChoiceField(
                 label=question.question_text,
@@ -36,9 +36,9 @@ class QuizAnswerForm(forms.Form):
             )
 
 class QuizForm(forms.Form):
-    def __init__(self, *args, **kwargs):
+    def _init_(self, *args, **kwargs):
         questions = kwargs.pop('questions')
-        super(QuizForm, self).__init__(*args, **kwargs)
+        super(QuizForm, self)._init_(*args, **kwargs)
         for question in questions:
             self.fields[f"question_{question.id}"] = forms.ChoiceField(
                 label=question.text,
@@ -70,3 +70,22 @@ class FeedbackForm(forms.ModelForm):
     class Meta:
         model = Feedback
         fields = ['difficulty', 'clarity_rating', 'comments']
+
+
+
+
+class TaskForm(forms.ModelForm):
+    class Meta:
+        model = DailyTasks
+        fields = [ "title", "question"]
+    def __init__(self, *args, **kwargs):
+        # pop trainer if passed, so it doesn’t go to BaseModelForm
+        self.trainer = kwargs.pop('trainer', None)
+        super(TaskForm, self).__init__(*args, **kwargs)
+
+
+# ✅ Student uploads answer to a DailyTask
+class TaskSubmissionForm(forms.ModelForm):
+    class Meta:
+        model = TaskSubmissions
+        fields = "__all__"

@@ -51,20 +51,33 @@
 </head>
 <body>
 
-<form method="post" class="form">
+<form method="post" class="form" autocomplete="off">
     {% csrf_token %}
     <p class="title">Student Login</p>
 
+    <!-- 🔹 Django messages -->
+    {% if messages %}
+      <div>
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }} mt-2" role="alert">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+    <!-- 🔹 End messages -->
+
     <label>
-        <input type="text" name="username" class="form-control" required placeholder="Username">
+        <input type="text" name="username" class="form-control" required placeholder="Username" autocomplete="new-username" required>
     </label>
 
     <label>
-        <input type="password" name="password" class="form-control" required placeholder="Password">
+        <input type="password" name="password" class="form-control" required placeholder="Password" autocomplete="new-password" required>
     </label>
 
     <button type="submit" class="submit">Login</button>
     <p class="signin">Don’t have an account? <a href="{% url 'quizapp:student_register' %}">Register</a></p>
+
 </form>
 
 </body>

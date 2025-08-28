@@ -1,13 +1,13 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import Course, Note, Quiz, Question, QuizResult, Feedback, DailyTask, Student, TaskSubmission, Trainer, UpdateUser, Video
+from .models import Course, Note, Quiz, Question, QuizResult, Feedback, Student, TaskSubmissions, Trainer, UpdateUser, Video
 
 
 # Register your models here.
-class UpdateUserAdmin(UserAdmin):
-    list_display = ('username', 'email', 'is_trainer', 'is_student', 'is_active')
+# class UpdateUserAdmin(UserAdmin):
+#     list_display = ('username', 'email', 'is_trainer', 'is_student', 'is_active')
 
-admin.site.register(UpdateUser, UpdateUserAdmin)
+admin.site.register(UpdateUser)
 admin.site.register(Trainer)
 admin.site.register(Student)
 admin.site.register(Course)
@@ -17,6 +17,7 @@ admin.site.register(QuizResult)
 admin.site.register(Feedback)
 admin.site.register(Note)
 admin.site.register(Video)
+
 
 
 
@@ -45,19 +46,27 @@ class FeedbackAdmin(admin.ModelAdmin):
 
 # admin.site.register(QuestionAdmin)
 
-@admin.register(DailyTask)
-class DailyTaskAdmin(admin.ModelAdmin):
-    list_display = ('course', 'date', 'short_q')
-    list_filter = ('course', 'date')
+# @admin.register(DailyTask)
+# class DailyTaskAdmin(admin.ModelAdmin):
+#     list_display = ('course', 'date', 'short_q')
+#     list_filter = ('course', 'date')
 
-    def short_q(self, obj):
-        return (obj.question[:60] + '…') if len(obj.question) > 60 else obj.question
-    short_q.short_description = 'Question'
+#     def short_q(self, obj):
+#         return (obj.question[:60] + '…') if len(obj.question) > 60 else obj.question
+#     short_q.short_description = 'Question'
 
-@admin.register(TaskSubmission)
-class TaskSubmissionAdmin(admin.ModelAdmin):
-    list_display = ('task', 'student', 'status', 'submitted_at')
-    list_filter = ('status', 'task__course', 'task__date')
-    list_editable = ('status',)
+# @admin.register(Course)
+# class CourseAdmin(admin.ModelAdmin):
+#     list_display = ("title", "trainer")
 
+
+# @admin.register(Task)
+# class TaskAdmin(admin.ModelAdmin):
+#     list_display = ("question", "course", "trainer", "created_at")
+#     list_filter = ("course", "trainer")
+
+
+# class TaskSubmissionAdmin(admin.ModelAdmin):
+#     list_display = ("task", "student", "status", "submitted_at","answer")
+#     list_filter = ("status", "task")
 

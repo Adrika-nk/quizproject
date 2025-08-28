@@ -5,6 +5,7 @@ from django.utils import timezone
 from datetime import date
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
+from django.contrib.auth.models import User
 
 class UpdateUser(AbstractUser):
     
@@ -20,9 +21,16 @@ class Course(models.Model):
     name = models.CharField(max_length=100, default="Untitled Course")
     description = models.TextField()
     image = models.ImageField(upload_to='course_images/', blank=True, null=True)
+    trainer = models.ForeignKey(
+        UpdateUser,
+        on_delete=models.CASCADE,
+        limit_choices_to={'is_staff': True},   # trainers only
+        related_name="courses"
+    )
 
     def __str__(self):
         return self.name
+    
 
 
 class Quiz(models.Model):
@@ -114,7 +122,7 @@ class AttemptAnswer(models.Model):
 class Note(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="notes")
     title = models.CharField(max_length=200)
-    content = models.TextField()
+    content = models.FileField(upload_to='notes/',null=True, blank=True)
 
     def __str__(self):
         return f"{self.title} - {self.course.name}"
@@ -152,31 +160,31 @@ class Video(models.Model):
 
 
 
-class DailyTask(models.Model):
-    course = models.ForeignKey('Course', related_name='daily_tasks', on_delete=models.CASCADE)
-    date = models.DateField(default=date.today)
-    question = models.TextField()
+# class DailyTask(models.Model):
+#     course = models.ForeignKey('Course', related_name='daily_tasks', on_delete=models.CASCADE)
+#     date = models.DateField(default=date.today)
+#     question = models.TextField()
 
-    def __str__(self):
-        return f"{self.course.name} - {self.date}"
+#     def __str__(self):
+#         return f"{self.course.name} - {self.date}"
 
-class TaskSubmission(models.Model):
-    STATUS_CHOICES = [
-        ("PENDING", "Pending"),
-        ("UNDER_REVIEW", "Under Review"),
-        ("REVIEWED", "Reviewed"),
-    ]
-    task = models.ForeignKey(DailyTask, related_name='submissions', on_delete=models.CASCADE)
-    student = models.ForeignKey(UpdateUser, related_name='task_submissions', on_delete=models.CASCADE)
-    answer = models.TextField()
-    submitted_at = models.DateTimeField(auto_now_add=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="PENDING")
+# class TaskSubmission(models.Model):
+#     STATUS_CHOICES = [
+#         ("PENDING", "Pending"),
+#         ("UNDER_REVIEW", "Under Review"),
+#         ("REVIEWED", "Reviewed"),
+#     ]
+#     task = models.ForeignKey(DailyTask, related_name='submissions', on_delete=models.CASCADE)
+#     student = models.ForeignKey(UpdateUser, related_name='task_submissions', on_delete=models.CASCADE)
+#     answer = models.FileField(upload_to='student_tasks/')
+#     submitted_at = models.DateTimeField(auto_now_add=True)
+#     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="PENDING")
 
-    class Meta:
-        unique_together = ('task', 'student')  # one submission per user per task
+#     class Meta:
+#         unique_together = ('task', 'student')  # one submission per user per task
 
-    def __str__(self):
-        return f"{self.student.username} - {self.task} ({self.get_status_display()})"
+#     def __str__(self):
+#         return f"{self.student.username} - {self.task} ({self.get_status_display()})"
     
 
 
@@ -194,8 +202,23 @@ class TaskSubmission(models.Model):
 
 class Trainer(models.Model):
     user = models.OneToOneField(UpdateUser, on_delete=models.CASCADE, related_name="trainer_profile")
-    expertise = models.CharField(max_length=200, blank=True, null=True)
     approved = models.BooleanField(default=False)  # admin must approve trainer
+    EXPERTISE_CHOICES = [
+        ("HTML Basics", "HTML Basics"),
+        ("Python Programming Basics", "Python Programming Basics"),
+        ("General Knowledge", "General Knowledge"),
+        ("Computer Fundamentals", "Computer Fundamentals"),
+        ("Advanced Python Programming", "Advanced Python Programming"),
+        ("CSS", "CSS"),
+        ("JavaScript", "JavaScript"),
+    ]
+
+    expertise = models.CharField(
+        max_length=200,
+        choices=EXPERTISE_CHOICES,
+        blank=True,
+        null=True
+    )
 
     def __str__(self):
         return f"Trainer: {self.user.username}"
@@ -207,3 +230,67 @@ class Student(models.Model):
 
     def __str__(self):
         return f"Student: {self.user.username}"
+    
+
+
+# class Task(models.Model):
+#     course = models.ForeignKey(Course, on_delete=models.CASCADE)
+#     title = models.CharField(max_length=200)
+#     description = models.TextField()
+#     due_date = models.DateField()
+
+#     def __str__(self):
+#         return self.title
+    
+
+
+# class Submission(models.Model):
+#     STATUS_CHOICES = [
+#         ("PENDING", "Pending"),
+#         ("UNDER_REVIEW", "Under Review"),
+#         ("REVIEWED", "Reviewed"),
+#     ]
+
+#     task = models.ForeignKey("Task", on_delete=models.CASCADE, related_name="submissions")
+#     user = models.ForeignKey(User, on_delete=models.CASCADE)
+#     answer_file = models.FileField(upload_to="submissions/", blank=True, null=True)
+#     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="PENDING")
+#     submitted_at = models.DateTimeField(auto_now_add=True)
+
+#     def __str__(self):
+#         return f"{self.user.username} - {self.task.title}"
+
+
+
+# Trainer assigns a task
+# class Task(models.Model):
+#     course = models.ForeignKey(Course, on_delete=models.CASCADE)
+#     title = models.CharField(max_length=200)
+#     description = models.TextField()
+#     due_date = models.DateField()
+#     created_at = models.DateTimeField(auto_now_add=True)
+
+#     def __str__(self):
+#         return self.title
+
+class DailyTasks(models.Model):
+    title = models.CharField(max_length=200, blank=True, null=True)
+    question = models.TextField(blank=True, null=True)
+    trainer = models.ForeignKey(UpdateUser, on_delete=models.CASCADE, limit_choices_to={'is_staff': True})
+
+    # date_assigned = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.title
+
+# Student uploads their submission for a task
+class TaskSubmissions(models.Model):
+    task = models.ForeignKey(DailyTasks, on_delete=models.CASCADE, related_name='submissions')
+    student = models.ForeignKey(UpdateUser, on_delete=models.CASCADE, limit_choices_to={'is_staff': False})
+    answer = models.FileField(upload_to="task_submissions/", blank=True, null=True)
+    submitted_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.student.username} - {self.task.title}"
+
+
